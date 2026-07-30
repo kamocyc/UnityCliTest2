@@ -38,22 +38,32 @@ namespace FormosaExpress.UI
 
         // Title
         RectTransform _title;
+        Text _titleTag;
         Text _titleRecord;
         Text _titlePrompt;
+        Text _titleControlsHint;
         Menu _modeMenu;
         readonly List<Image> _modePanels = new List<Image>(2);
         readonly List<GameMode> _modeValues = new List<GameMode>(2);
+        readonly List<Text> _modeBlurbs = new List<Text>(2);
+        readonly List<string> _modeBlurbKeys = new List<string>(2);
 
         // Briefing
         RectTransform _briefing;
         Text _briefingHeading;
         Text _briefingBody;
+        Text _briefingPrompt;
 
         // Pause
         RectTransform _paused;
+        Text _pauseHeading;
         Menu _pauseMenu;
+        int _languageItemIndex;
         RectTransform _controls;
         bool _showingControls;
+        Text _controlsHeading;
+        Text _controlsBody;
+        Text _controlsPrompt;
 
         // Results
         RectTransform _results;
@@ -63,7 +73,9 @@ namespace FormosaExpress.UI
 
         // Garage
         RectTransform _garage;
+        Text _garageHeading;
         Text _garageMoney;
+        Text _garagePrompt;
         readonly List<GarageRow> _garageRows = new List<GarageRow>(5);
         int _garageIndex;
 
@@ -83,6 +95,7 @@ namespace FormosaExpress.UI
         {
             public readonly List<Text> Items = new List<Text>();
             public readonly List<Action> Actions = new List<Action>();
+            public readonly List<string> Keys = new List<string>();
             public int Index;
 
             public void Move(int delta)
@@ -126,7 +139,64 @@ namespace FormosaExpress.UI
             BuildGarage();
 
             Show(Screen.None);
+
+            Localization.Changed += ApplyLanguage;
+            ApplyLanguage();
         }
+
+        /// <summary>Re-stamps every static caption in every screen after a language toggle. The
+        /// dynamic ones (results, garage rows, briefing body) already rebuild from Localization.T
+        /// each time they're populated, so they don't need a hook here.</summary>
+        void ApplyLanguage()
+        {
+            _titleTag.text = Localization.T("NIGHT MARKET DELIVERY");
+            _titlePrompt.text = Localization.T("W / S  choose        ENTER  go");
+            _titleControlsHint.text = Localization.T(
+                "W / S  throttle & brake        A / D  steer        SPACE  drift        SHIFT  boost\n"
+                + "TAB  switch job        E  horn        C  camera        ESC  pause");
+            for (int i = 0; i < _modeBlurbs.Count; i++) _modeBlurbs[i].text = Localization.T(_modeBlurbKeys[i]);
+            if (Services.Save != null) SetTitleRecord(Services.Save);
+
+            _briefingPrompt.text = Localization.T("ENTER  to start riding");
+
+            _pauseHeading.text = Localization.T("PAUSED");
+            ApplyPauseLanguage();
+
+            _controlsHeading.text = Localization.T("CONTROLS");
+            _controlsBody.text =
+                Localization.T("W / S               throttle & brake") + "\n"
+                + Localization.T("A / D               steer") + "\n"
+                + Localization.T("SPACE               drift") + "\n"
+                + Localization.T("LEFT SHIFT          boost") + "\n"
+                + Localization.T("TAB                 switch delivery job") + "\n"
+                + Localization.T("E                   horn") + "\n"
+                + Localization.T("Q                   look back") + "\n"
+                + Localization.T("C                   change camera") + "\n"
+                + Localization.T("R                   restart shift") + "\n"
+                + Localization.T("ESC                 pause");
+            _controlsPrompt.text = Localization.T("ENTER / ESC  back");
+
+            _garageHeading.text = Localization.T("GARAGE");
+            _garagePrompt.text = Localization.T("W / S  choose        ENTER  buy        TAB  head out for the next shift");
+            if (Current == Screen.Garage) RefreshGarage();
+        }
+
+        string LanguageMenuLabel() => Localization.Current switch
+        {
+            Language.Japanese => Localization.T("LANGUAGE: 日本語"),
+            Language.SimplifiedChinese => Localization.T("LANGUAGE: 简体中文"),
+            Language.TraditionalChinese => Localization.T("LANGUAGE: 繁體中文"),
+            _ => Localization.T("LANGUAGE: ENGLISH")
+        };
+
+        void ApplyPauseLanguage()
+        {
+            for (int i = 0; i < _pauseMenu.Items.Count; i++)
+                _pauseMenu.Items[i].text = i == _languageItemIndex ? LanguageMenuLabel() : Localization.T(_pauseMenu.Keys[i]);
+            if (Current == Screen.Paused) _pauseMenu.Refresh(Art.HudGold, Art.HudDim);
+        }
+
+        void ToggleLanguage() => Localization.Toggle();
 
         void BuildTitle()
         {
@@ -139,8 +209,8 @@ namespace FormosaExpress.UI
             UiKit.CreateOutlinedLabel("Name", _title, "FORMOSA EXPRESS", 92, Art.HudGold)
                 .rectTransform.Place(UiKit.Centre, UiKit.Centre, new Vector2(0f, 86f), new Vector2(1200f, 100f));
 
-            UiKit.CreateOutlinedLabel("Tag", _title, "NIGHT MARKET DELIVERY", 30, Art.HudCyan)
-                .rectTransform.Place(UiKit.Centre, UiKit.Centre, new Vector2(0f, 26f), new Vector2(1200f, 40f));
+            _titleTag = UiKit.CreateOutlinedLabel("Tag", _title, "NIGHT MARKET DELIVERY", 30, Art.HudCyan);
+            _titleTag.rectTransform.Place(UiKit.Centre, UiKit.Centre, new Vector2(0f, 26f), new Vector2(1200f, 40f));
 
             _titleRecord = UiKit.CreateOutlinedLabel("Record", _title, "", 22, Art.HudDim);
             _titleRecord.rectTransform.Place(UiKit.Centre, UiKit.Centre, new Vector2(0f, -26f), new Vector2(1200f, 30f));
@@ -157,11 +227,11 @@ namespace FormosaExpress.UI
                 Art.HudText);
             _titlePrompt.rectTransform.Place(UiKit.Centre, UiKit.Centre, new Vector2(0f, -262f), new Vector2(1200f, 34f));
 
-            UiKit.CreateOutlinedLabel("Controls", _title,
+            _titleControlsHint = UiKit.CreateOutlinedLabel("Controls", _title,
                     "W / S  throttle & brake        A / D  steer        SPACE  drift        SHIFT  boost\n"
                     + "TAB  switch job        E  horn        C  camera        ESC  pause",
-                    19, new Color(1f, 1f, 1f, 0.55f))
-                .rectTransform.Place(UiKit.Centre, UiKit.Centre, new Vector2(0f, -322f), new Vector2(1200f, 76f));
+                    19, new Color(1f, 1f, 1f, 0.55f));
+            _titleControlsHint.rectTransform.Place(UiKit.Centre, UiKit.Centre, new Vector2(0f, -322f), new Vector2(1200f, 76f));
         }
 
         void AddModeCard(int index, string title, string blurb, GameMode mode)
@@ -174,13 +244,15 @@ namespace FormosaExpress.UI
             heading.rectTransform.Place(UiKit.TopLeft, UiKit.TopLeft, new Vector2(26f, -8f), new Vector2(400f, 36f));
             heading.alignment = TextAnchor.MiddleLeft;
 
-            Text detail = UiKit.CreateLabel($"Mode{index}Blurb", panel.transform, blurb, 17, Art.HudDim);
+            Text detail = UiKit.CreateLabel($"Mode{index}Blurb", panel.transform, Localization.T(blurb), 17, Art.HudDim);
             detail.rectTransform.Place(UiKit.TopLeft, UiKit.TopLeft, new Vector2(26f, -42f), new Vector2(670f, 24f));
 
             _modePanels.Add(panel);
             _modeMenu.Items.Add(heading);
             _modeMenu.Actions.Add(() => { });
             _modeValues.Add(mode);
+            _modeBlurbs.Add(detail);
+            _modeBlurbKeys.Add(blurb);
         }
 
         void BuildBriefing()
@@ -199,8 +271,8 @@ namespace FormosaExpress.UI
             _briefingBody.rectTransform.Place(UiKit.TopCentre, UiKit.TopCentre, new Vector2(0f, -130f),
                 new Vector2(660f, 240f));
 
-            UiKit.CreateOutlinedLabel("Prompt", panel.transform, "ENTER  to start riding", 28, Art.HudCyan)
-                .rectTransform.Place(UiKit.BottomCentre, UiKit.BottomCentre, new Vector2(0f, 34f),
+            _briefingPrompt = UiKit.CreateOutlinedLabel("Prompt", panel.transform, "ENTER  to start riding", 28, Art.HudCyan);
+            _briefingPrompt.rectTransform.Place(UiKit.BottomCentre, UiKit.BottomCentre, new Vector2(0f, 34f),
                     new Vector2(660f, 36f));
         }
 
@@ -210,16 +282,18 @@ namespace FormosaExpress.UI
             _paused.Stretch();
 
             Image panel = UiKit.CreatePanel("Panel", _paused, Art.HudPanelSolid, 22);
-            panel.rectTransform.Place(UiKit.Centre, UiKit.Centre, Vector2.zero, new Vector2(520f, 400f));
+            panel.rectTransform.Place(UiKit.Centre, UiKit.Centre, Vector2.zero, new Vector2(520f, 456f));
 
-            UiKit.CreateOutlinedLabel("Heading", panel.transform, "PAUSED", 56, Art.HudGold)
-                .rectTransform.Place(UiKit.TopCentre, UiKit.TopCentre, new Vector2(0f, -48f), new Vector2(460f, 64f));
+            _pauseHeading = UiKit.CreateOutlinedLabel("Heading", panel.transform, "PAUSED", 56, Art.HudGold);
+            _pauseHeading.rectTransform.Place(UiKit.TopCentre, UiKit.TopCentre, new Vector2(0f, -48f), new Vector2(460f, 64f));
 
             _pauseMenu = new Menu();
             AddMenuItem(_pauseMenu, panel.transform, "RESUME", -140f, () => ResumeRequested?.Invoke());
             AddMenuItem(_pauseMenu, panel.transform, "CONTROLS", -196f, ShowControls);
-            AddMenuItem(_pauseMenu, panel.transform, "RESTART SHIFT", -252f, () => RestartRequested?.Invoke());
-            AddMenuItem(_pauseMenu, panel.transform, "QUIT TO TITLE", -308f, () => QuitToTitleRequested?.Invoke());
+            _languageItemIndex = _pauseMenu.Items.Count;
+            AddMenuItem(_pauseMenu, panel.transform, "LANGUAGE: ENGLISH", -252f, ToggleLanguage);
+            AddMenuItem(_pauseMenu, panel.transform, "RESTART SHIFT", -308f, () => RestartRequested?.Invoke());
+            AddMenuItem(_pauseMenu, panel.transform, "QUIT TO TITLE", -364f, () => QuitToTitleRequested?.Invoke());
         }
 
         void ShowControls()
@@ -244,10 +318,10 @@ namespace FormosaExpress.UI
             Image panel = UiKit.CreatePanel("Panel", _controls, Art.HudPanelSolid, 22);
             panel.rectTransform.Place(UiKit.Centre, UiKit.Centre, Vector2.zero, new Vector2(620f, 560f));
 
-            UiKit.CreateOutlinedLabel("Heading", panel.transform, "CONTROLS", 56, Art.HudGold)
-                .rectTransform.Place(UiKit.TopCentre, UiKit.TopCentre, new Vector2(0f, -48f), new Vector2(560f, 64f));
+            _controlsHeading = UiKit.CreateOutlinedLabel("Heading", panel.transform, "CONTROLS", 56, Art.HudGold);
+            _controlsHeading.rectTransform.Place(UiKit.TopCentre, UiKit.TopCentre, new Vector2(0f, -48f), new Vector2(560f, 64f));
 
-            Text body = UiKit.CreateLabel("Body", panel.transform,
+            _controlsBody = UiKit.CreateLabel("Body", panel.transform,
                 "W / S               throttle & brake\n"
                 + "A / D               steer\n"
                 + "SPACE               drift\n"
@@ -259,18 +333,19 @@ namespace FormosaExpress.UI
                 + "R                   restart shift\n"
                 + "ESC                 pause",
                 26, Art.HudText, TextAnchor.UpperLeft);
-            body.rectTransform.Place(UiKit.TopCentre, UiKit.TopCentre, new Vector2(0f, -130f), new Vector2(480f, 360f));
+            _controlsBody.rectTransform.Place(UiKit.TopCentre, UiKit.TopCentre, new Vector2(0f, -130f), new Vector2(480f, 360f));
 
-            UiKit.CreateOutlinedLabel("Prompt", panel.transform, "ENTER / ESC  back", 26, Art.HudCyan)
-                .rectTransform.Place(UiKit.BottomCentre, UiKit.BottomCentre, new Vector2(0f, 30f), new Vector2(560f, 34f));
+            _controlsPrompt = UiKit.CreateOutlinedLabel("Prompt", panel.transform, "ENTER / ESC  back", 26, Art.HudCyan);
+            _controlsPrompt.rectTransform.Place(UiKit.BottomCentre, UiKit.BottomCentre, new Vector2(0f, 30f), new Vector2(560f, 34f));
         }
 
         void AddMenuItem(Menu menu, Transform parent, string label, float y, Action action)
         {
-            Text text = UiKit.CreateOutlinedLabel("Item" + menu.Items.Count, parent, label, 32, Art.HudDim);
+            Text text = UiKit.CreateOutlinedLabel("Item" + menu.Items.Count, parent, Localization.T(label), 32, Art.HudDim);
             text.rectTransform.Place(UiKit.TopCentre, UiKit.TopCentre, new Vector2(0f, y), new Vector2(440f, 42f));
             menu.Items.Add(text);
             menu.Actions.Add(action);
+            menu.Keys.Add(label);
         }
 
         void BuildResults()
@@ -303,8 +378,8 @@ namespace FormosaExpress.UI
             Image panel = UiKit.CreatePanel("Panel", _garage, Art.HudPanelSolid, 22);
             panel.rectTransform.Place(UiKit.Centre, UiKit.Centre, Vector2.zero, new Vector2(900f, 620f));
 
-            UiKit.CreateOutlinedLabel("Heading", panel.transform, "GARAGE", 56, Art.HudGold)
-                .rectTransform.Place(UiKit.TopCentre, UiKit.TopCentre, new Vector2(0f, -46f), new Vector2(840f, 62f));
+            _garageHeading = UiKit.CreateOutlinedLabel("Heading", panel.transform, "GARAGE", 56, Art.HudGold);
+            _garageHeading.rectTransform.Place(UiKit.TopCentre, UiKit.TopCentre, new Vector2(0f, -46f), new Vector2(840f, 62f));
 
             _garageMoney = UiKit.CreateOutlinedLabel("Money", panel.transform, "", 30, Art.HudGold);
             _garageMoney.rectTransform.Place(UiKit.TopCentre, UiKit.TopCentre, new Vector2(0f, -104f),
@@ -345,9 +420,9 @@ namespace FormosaExpress.UI
                 _garageRows.Add(row);
             }
 
-            UiKit.CreateOutlinedLabel("Prompt", panel.transform,
-                    "W / S  choose        ENTER  buy        TAB  head out for the next shift", 24, Art.HudCyan)
-                .rectTransform.Place(UiKit.BottomCentre, UiKit.BottomCentre, new Vector2(0f, 28f),
+            _garagePrompt = UiKit.CreateOutlinedLabel("Prompt", panel.transform,
+                    "W / S  choose        ENTER  buy        TAB  head out for the next shift", 24, Art.HudCyan);
+            _garagePrompt.rectTransform.Place(UiKit.BottomCentre, UiKit.BottomCentre, new Vector2(0f, 28f),
                     new Vector2(840f, 34f));
         }
 
@@ -355,11 +430,11 @@ namespace FormosaExpress.UI
         {
             switch (kind)
             {
-                case UpgradeKind.Engine: return "ENGINE";
-                case UpgradeKind.Tyres: return "TYRES";
-                case UpgradeKind.Suspension: return "SUSPENSION";
-                case UpgradeKind.Bag: return "DELIVERY BAG";
-                default: return "ADRENALINE TANK";
+                case UpgradeKind.Engine: return Localization.T("ENGINE");
+                case UpgradeKind.Tyres: return Localization.T("TYRES");
+                case UpgradeKind.Suspension: return Localization.T("SUSPENSION");
+                case UpgradeKind.Bag: return Localization.T("DELIVERY BAG");
+                default: return Localization.T("ADRENALINE TANK");
             }
         }
 
@@ -367,11 +442,11 @@ namespace FormosaExpress.UI
         {
             switch (kind)
             {
-                case UpgradeKind.Engine: return "Higher top speed and quicker pull away from the lights.";
-                case UpgradeKind.Tyres: return "More grip through corners, stronger brakes.";
-                case UpgradeKind.Suspension: return "Softer landings; kerbs and knocks cost you less.";
-                case UpgradeKind.Bag: return "Carry more orders at once and keep the food intact.";
-                default: return "A bigger tank, so boost lasts longer.";
+                case UpgradeKind.Engine: return Localization.T("Higher top speed and quicker pull away from the lights.");
+                case UpgradeKind.Tyres: return Localization.T("More grip through corners, stronger brakes.");
+                case UpgradeKind.Suspension: return Localization.T("Softer landings; kerbs and knocks cost you less.");
+                case UpgradeKind.Bag: return Localization.T("Carry more orders at once and keep the food intact.");
+                default: return Localization.T("A bigger tank, so boost lasts longer.");
             }
         }
 
@@ -420,17 +495,16 @@ namespace FormosaExpress.UI
         {
             if (save.bestScore <= 0)
             {
-                _titleRecord.text = "FIRST DAY ON THE JOB";
+                _titleRecord.text = Localization.T("FIRST DAY ON THE JOB");
                 return;
             }
 
             string races = save.racesWon + save.racesLost > 0
-                ? $"     RACES {save.racesWon}-{save.racesLost}"
+                ? string.Format(Localization.T("     RACES {0}-{1}"), save.racesWon, save.racesLost)
                 : string.Empty;
 
-            _titleRecord.text =
-                $"BEST SCORE {save.bestScore:N0}     DELIVERIES {save.totalDeliveries}"
-                + $"     CASH {MathX.FormatMoney(save.money)}{races}";
+            _titleRecord.text = string.Format(Localization.T("BEST SCORE {0}     DELIVERIES {1}     CASH {2}{3}"),
+                save.bestScore.ToString("N0"), save.totalDeliveries, MathX.FormatMoney(save.money), races);
         }
 
         void RefreshModeSelect()
@@ -455,22 +529,22 @@ namespace FormosaExpress.UI
             _briefingHeading.text = "RIVAL RACE";
             _briefingHeading.color = Art.RivalTint;
             _briefingBody.text =
-                $"{rivalName} is working the same streets tonight.\n\n"
-                + "You are both bidding for the same orders, and only one of you\n"
-                + "can take each one. Whoever reaches the shop first gets it.\n\n"
-                + $"FIRST TO            {target} deliveries\n"
-                + $"TIME LIMIT          {MathX.FormatClock(duration)}\n"
-                + $"RIVAL SKILL         shift {level} pace";
+                string.Format(Localization.T("{0} is working the same streets tonight."), Localization.T(rivalName)) + "\n\n"
+                + Localization.T("You are both bidding for the same orders, and only one of you\n"
+                    + "can take each one. Whoever reaches the shop first gets it.") + "\n\n"
+                + string.Format(Localization.T("FIRST TO            {0} deliveries"), target) + "\n"
+                + string.Format(Localization.T("TIME LIMIT          {0}"), MathX.FormatClock(duration)) + "\n"
+                + string.Format(Localization.T("RIVAL SKILL         shift {0} pace"), level);
         }
 
         public void SetBriefing(int level, int quota, float duration, int capacity, string flavour)
         {
-            _briefingHeading.text = $"SHIFT {level}";
+            _briefingHeading.text = $"{Localization.T("SHIFT")} {level}";
             _briefingHeading.color = Art.HudGold;
             _briefingBody.text =
-                $"Earn {MathX.FormatMoney(quota)} before the clock runs out.\n\n"
-                + $"TIME ON SHIFT      {MathX.FormatClock(duration)}\n"
-                + $"BAG CAPACITY       {capacity} order{(capacity == 1 ? "" : "s")}\n\n"
+                string.Format(Localization.T("Earn {0} before the clock runs out."), MathX.FormatMoney(quota)) + "\n\n"
+                + $"{Localization.T("TIME ON SHIFT")}      {MathX.FormatClock(duration)}\n"
+                + $"{Localization.T("BAG CAPACITY")}       {capacity} order{(capacity == 1 ? "" : "s")}\n\n"
                 + flavour;
         }
 
@@ -482,54 +556,65 @@ namespace FormosaExpress.UI
                 return;
             }
 
-            _resultsHeading.text = report.QuotaMet ? "SHIFT COMPLETE" : "SHIFT OVER";
+            _resultsHeading.text = Localization.T(report.QuotaMet ? "SHIFT COMPLETE" : "SHIFT OVER");
             _resultsHeading.color = report.QuotaMet ? Art.HudGold : Art.HudRed;
 
             string verdict = report.QuotaMet
-                ? levelledUp ? "\nQuota met. Shift " + (report.Level + 1) + " unlocked."
-                    : "\nQuota met."
-                : "\nQuota missed. The dispatcher is not impressed - try again.";
+                ? levelledUp ? string.Format(Localization.T("\nQuota met. Shift {0} unlocked."), report.Level + 1)
+                    : Localization.T("\nQuota met.")
+                : Localization.T("\nQuota missed. The dispatcher is not impressed - try again.");
 
             _resultsBody.text =
-                $"EARNINGS            {MathX.FormatMoney(report.Earnings)}  /  {MathX.FormatMoney(report.Quota)}\n"
-                + $"SCORE               {report.Score:N0}\n"
-                + $"DELIVERED           {report.Delivered}\n"
-                + $"PERFECT             {report.PerfectDeliveries}\n"
-                + $"EXPIRED             {report.Expired}\n"
-                + $"BEST COMBO          x{Tuning.ComboMultipliers[Mathf.Clamp(report.BestCombo, 0, Tuning.ComboMultipliers.Length - 1)]:0.##}\n"
-                + $"NEAR MISSES         {report.NearMisses}\n"
-                + $"TOP SPEED           {Mathf.RoundToInt(report.TopSpeedKmh)} km/h\n"
-                + $"\nWALLET              {MathX.FormatMoney(totalMoney)}"
+                $"{Localization.T("EARNINGS")}            {MathX.FormatMoney(report.Earnings)}  /  {MathX.FormatMoney(report.Quota)}\n"
+                + $"{Localization.T("SCORE")}               {report.Score:N0}\n"
+                + $"{Localization.T("DELIVERED")}           {report.Delivered}\n"
+                + $"{Localization.T("PERFECT")}             {report.PerfectDeliveries}\n"
+                + $"{Localization.T("EXPIRED")}             {report.Expired}\n"
+                + $"{Localization.T("BEST COMBO")}          x{Tuning.ComboMultipliers[Mathf.Clamp(report.BestCombo, 0, Tuning.ComboMultipliers.Length - 1)]:0.##}\n"
+                + $"{Localization.T("NEAR MISSES")}         {report.NearMisses}\n"
+                + $"{Localization.T("TOP SPEED")}           {Mathf.RoundToInt(report.TopSpeedKmh)} km/h\n"
+                + $"\n{Localization.T("WALLET")}              {MathX.FormatMoney(totalMoney)}"
                 + verdict;
 
-            _resultsPrompt.text = "ENTER  to visit the garage";
+            _resultsPrompt.text = Localization.T("ENTER  to visit the garage");
         }
 
         void SetRaceResults(ShiftReport report, int totalMoney)
         {
-            _resultsHeading.text = report.RaceWon ? "YOU WIN" : "YOU LOSE";
+            _resultsHeading.text = Localization.T(report.RaceWon ? "YOU WIN" : "YOU LOSE");
             _resultsHeading.color = report.RaceWon ? Art.HudGold : Art.HudRed;
 
-            string margin = report.Delivered == report.RivalDelivered
-                ? "Settled on earnings."
-                : report.RaceWon
-                    ? $"Won by {report.Delivered - report.RivalDelivered} delivery"
-                      + (report.Delivered - report.RivalDelivered == 1 ? "." : "ies.")
-                    : $"Lost by {report.RivalDelivered - report.Delivered} delivery"
-                      + (report.RivalDelivered - report.Delivered == 1 ? "." : "ies.");
+            string margin;
+            if (report.Delivered == report.RivalDelivered)
+            {
+                margin = Localization.T("Settled on earnings.");
+            }
+            else
+            {
+                int diff = Mathf.Abs(report.Delivered - report.RivalDelivered);
+                margin = Localization.Current switch
+                {
+                    Language.Japanese => string.Format(report.RaceWon ? "{0}件差で勝利。" : "{0}件差で敗北。", diff),
+                    Language.SimplifiedChinese => string.Format(report.RaceWon ? "以{0}单之差获胜。" : "以{0}单之差落败。", diff),
+                    Language.TraditionalChinese => string.Format(report.RaceWon ? "以{0}單之差獲勝。" : "以{0}單之差落敗。", diff),
+                    _ => report.RaceWon
+                        ? $"Won by {diff} delivery" + (diff == 1 ? "." : "ies.")
+                        : $"Lost by {diff} delivery" + (diff == 1 ? "." : "ies.")
+                };
+            }
 
             _resultsBody.text =
-                $"                    YOU        {report.RivalName}\n"
-                + $"DELIVERIES          {report.Delivered,-11}{report.RivalDelivered}\n"
-                + $"EARNINGS            {MathX.FormatMoney(report.Earnings),-11}{MathX.FormatMoney(report.RivalEarnings)}\n"
-                + $"\nSCORE               {report.Score:N0}\n"
-                + $"BEST COMBO          x{Tuning.ComboMultipliers[Mathf.Clamp(report.BestCombo, 0, Tuning.ComboMultipliers.Length - 1)]:0.##}\n"
-                + $"NEAR MISSES         {report.NearMisses}\n"
-                + $"TOP SPEED           {Mathf.RoundToInt(report.TopSpeedKmh)} km/h\n"
-                + $"\nWALLET              {MathX.FormatMoney(totalMoney)}\n"
+                $"                    {Localization.T("YOU")}        {Localization.T(report.RivalName)}\n"
+                + $"{Localization.T("DELIVERIES")}          {report.Delivered,-11}{report.RivalDelivered}\n"
+                + $"{Localization.T("EARNINGS")}            {MathX.FormatMoney(report.Earnings),-11}{MathX.FormatMoney(report.RivalEarnings)}\n"
+                + $"\n{Localization.T("SCORE")}               {report.Score:N0}\n"
+                + $"{Localization.T("BEST COMBO")}          x{Tuning.ComboMultipliers[Mathf.Clamp(report.BestCombo, 0, Tuning.ComboMultipliers.Length - 1)]:0.##}\n"
+                + $"{Localization.T("NEAR MISSES")}         {report.NearMisses}\n"
+                + $"{Localization.T("TOP SPEED")}           {Mathf.RoundToInt(report.TopSpeedKmh)} km/h\n"
+                + $"\n{Localization.T("WALLET")}              {MathX.FormatMoney(totalMoney)}\n"
                 + $"\n{margin}";
 
-            _resultsPrompt.text = "ENTER  to visit the garage";
+            _resultsPrompt.text = Localization.T("ENTER  to visit the garage");
         }
 
         void RefreshGarage()
@@ -537,7 +622,7 @@ namespace FormosaExpress.UI
             SaveData save = Services.Save;
             if (save == null) return;
 
-            _garageMoney.text = "WALLET   " + MathX.FormatMoney(save.money);
+            _garageMoney.text = Localization.T("WALLET") + "   " + MathX.FormatMoney(save.money);
 
             for (int i = 0; i < _garageRows.Count; i++)
             {
@@ -557,7 +642,7 @@ namespace FormosaExpress.UI
 
                 if (maxed)
                 {
-                    row.Cost.text = "MAX";
+                    row.Cost.text = Localization.T("MAX");
                     row.Cost.color = Art.HudGreen;
                 }
                 else
@@ -612,6 +697,7 @@ namespace FormosaExpress.UI
                     break;
 
                 case Screen.Paused:
+                    if (input.PausePressed) Debug.Log($"[Diag] Paused case sees PausePressed=true, showingControls={_showingControls}, confirm={input.ConfirmPressed}");
                     if (_showingControls)
                     {
                         if (input.ConfirmPressed || input.PausePressed || input.CancelPressed)
@@ -637,6 +723,7 @@ namespace FormosaExpress.UI
                     }
                     else if (input.PausePressed || input.CancelPressed)
                     {
+                        Debug.Log($"[Diag] Resume branch hit. PausePressed={input.PausePressed} CancelPressed={input.CancelPressed}");
                         Services.Audio?.PlayUiBack();
                         ResumeRequested?.Invoke();
                     }

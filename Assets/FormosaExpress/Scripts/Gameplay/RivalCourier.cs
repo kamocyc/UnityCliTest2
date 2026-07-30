@@ -201,7 +201,7 @@ namespace FormosaExpress.Gameplay
                 if (_hintTimer <= 0f)
                 {
                     _hintTimer = 2f;
-                    Services.Hud?.ShowToast($"{RivalName} DELIVERED  ({Delivered})", Art.RivalTint, 2.1f);
+                    Services.Hud?.ShowToast(string.Format(Localization.T("{0} DELIVERED  ({1})"), Localization.T(RivalName), Delivered), Art.RivalTint, 2.1f);
                 }
 
                 _brain.HoldTimer = Tuning.RivalHandlingDelay(_level);
@@ -217,7 +217,7 @@ namespace FormosaExpress.Gameplay
             if (_hintTimer <= 0f)
             {
                 _hintTimer = 2f;
-                Services.Hud?.ShowToast($"{RivalName} TOOK {order.ShopName.ToUpperInvariant()}", Art.RivalTint, 1.9f);
+                Services.Hud?.ShowToast(string.Format(Localization.T("{0} TOOK {1}"), Localization.T(RivalName), Localization.T(order.ShopName).ToUpperInvariant()), Art.RivalTint, 1.9f);
             }
         }
     }

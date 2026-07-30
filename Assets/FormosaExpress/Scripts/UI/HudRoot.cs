@@ -22,7 +22,9 @@ namespace FormosaExpress.UI
         // Top bar
         Text _clock;
         Text _score;
+        Text _scoreCaption;
         Text _level;
+        Text _levelCaption;
         Image _clockIcon;
         Text _money;
         Image _quotaFill;
@@ -31,6 +33,7 @@ namespace FormosaExpress.UI
         // Destination marker
         RectTransform _marker;
         Text _markerTitle;
+        Text _markerCaption;
         Text _markerDistance;
         Image _markerIcon;
         Image _markerArrow;
@@ -41,6 +44,7 @@ namespace FormosaExpress.UI
         // Bottom cluster
         Text _speedValue;
         Text _speedUnit;
+        Text _boostCaption;
         Text _combo;
         RectTransform _comboRect;
         Image _comboWindow;
@@ -51,6 +55,8 @@ namespace FormosaExpress.UI
 
         // Race
         RectTransform _versus;
+        Text _versusCaption;
+        Text _versusYouLabel;
         Text _versusPlayer;
         Text _versusRival;
         Text _versusRivalName;
@@ -110,6 +116,22 @@ namespace FormosaExpress.UI
             BuildFeedback();
 
             SetVisible(false);
+
+            Localization.Changed += ApplyLanguage;
+            ApplyLanguage();
+        }
+
+        /// <summary>Re-stamps the HUD's static captions after a language toggle. Everything else
+        /// (order cards, toasts, quota, cargo) already rebuilds from Localization.T every frame.</summary>
+        void ApplyLanguage()
+        {
+            _scoreCaption.text = Localization.T("SCORE");
+            _levelCaption.text = Localization.T("SHIFT");
+            _boostCaption.text = Localization.T("BOOST");
+            _markerCaption.text = Localization.T("DESTINATION");
+            _hints.text = Localization.T("W/S throttle & brake   A/D steer   SPACE drift   SHIFT boost   TAB switch job   E horn   C camera");
+            _versusCaption.text = Localization.T("RACE  ·  FIRST TO 5");
+            _versusYouLabel.text = Localization.T("YOU");
         }
 
         /// <summary>The race scoreboard. Hidden entirely in career mode.</summary>
@@ -119,12 +141,12 @@ namespace FormosaExpress.UI
             _versus = panel.rectTransform;
             _versus.Place(UiKit.TopCentre, UiKit.TopCentre, new Vector2(0f, -22f), new Vector2(430f, 96f));
 
-            UiKit.CreateLabel("VersusCaption", _versus, "RACE  ·  FIRST TO 5", 15, Art.HudDim,
-                    TextAnchor.MiddleCenter)
-                .rectTransform.Place(UiKit.TopCentre, UiKit.TopCentre, new Vector2(0f, -6f), new Vector2(400f, 18f));
+            _versusCaption = UiKit.CreateLabel("VersusCaption", _versus, "RACE  ·  FIRST TO 5", 15, Art.HudDim,
+                    TextAnchor.MiddleCenter);
+            _versusCaption.rectTransform.Place(UiKit.TopCentre, UiKit.TopCentre, new Vector2(0f, -6f), new Vector2(400f, 18f));
 
-            UiKit.CreateLabel("YouLabel", _versus, "YOU", 18, Art.HudCyan)
-                .rectTransform.Place(UiKit.TopLeft, UiKit.TopLeft, new Vector2(18f, -26f), new Vector2(80f, 22f));
+            _versusYouLabel = UiKit.CreateLabel("YouLabel", _versus, "YOU", 18, Art.HudCyan);
+            _versusYouLabel.rectTransform.Place(UiKit.TopLeft, UiKit.TopLeft, new Vector2(18f, -26f), new Vector2(80f, 22f));
 
             _versusPlayer = UiKit.CreateLabel("YouCount", _versus, "0", 30, Art.HudCyan, TextAnchor.MiddleRight);
             _versusPlayer.rectTransform.Place(UiKit.TopRight, UiKit.TopRight, new Vector2(-18f, -24f),
@@ -170,8 +192,8 @@ namespace FormosaExpress.UI
             UiKit.CreateLabel("Sep1", panel.transform, "|", 26, Art.HudDim)
                 .rectTransform.Place(UiKit.TopLeft, UiKit.TopLeft, new Vector2(158f, -14f), new Vector2(12f, 30f));
 
-            UiKit.CreateLabel("ScoreCaption", panel.transform, "SCORE", 15, Art.HudDim)
-                .rectTransform.Place(UiKit.TopLeft, UiKit.TopLeft, new Vector2(176f, -8f), new Vector2(70f, 18f));
+            _scoreCaption = UiKit.CreateLabel("ScoreCaption", panel.transform, "SCORE", 15, Art.HudDim);
+            _scoreCaption.rectTransform.Place(UiKit.TopLeft, UiKit.TopLeft, new Vector2(176f, -8f), new Vector2(70f, 18f));
 
             _score = UiKit.CreateLabel("Score", panel.transform, "0", 26, Art.HudGold);
             _score.rectTransform.Place(UiKit.TopLeft, UiKit.TopLeft, new Vector2(176f, -26f), new Vector2(130f, 28f));
@@ -179,8 +201,8 @@ namespace FormosaExpress.UI
             UiKit.CreateLabel("Sep2", panel.transform, "|", 26, Art.HudDim)
                 .rectTransform.Place(UiKit.TopLeft, UiKit.TopLeft, new Vector2(316f, -14f), new Vector2(12f, 30f));
 
-            UiKit.CreateLabel("LevelCaption", panel.transform, "SHIFT", 15, Art.HudDim)
-                .rectTransform.Place(UiKit.TopLeft, UiKit.TopLeft, new Vector2(334f, -8f), new Vector2(70f, 18f));
+            _levelCaption = UiKit.CreateLabel("LevelCaption", panel.transform, "SHIFT", 15, Art.HudDim);
+            _levelCaption.rectTransform.Place(UiKit.TopLeft, UiKit.TopLeft, new Vector2(334f, -8f), new Vector2(70f, 18f));
 
             _level = UiKit.CreateLabel("Level", panel.transform, "1", 26, Art.HudText);
             _level.rectTransform.Place(UiKit.TopLeft, UiKit.TopLeft, new Vector2(334f, -26f), new Vector2(80f, 28f));
@@ -284,8 +306,8 @@ namespace FormosaExpress.UI
                 new Vector2(54f, 24f));
 
             // Boost meter.
-            UiKit.CreateLabel("BoostCaption", speedPanel.transform, "BOOST", 13, Art.HudDim)
-                .rectTransform.Place(UiKit.BottomLeft, UiKit.BottomLeft, new Vector2(16f, 32f), new Vector2(60f, 16f));
+            _boostCaption = UiKit.CreateLabel("BoostCaption", speedPanel.transform, "BOOST", 13, Art.HudDim);
+            _boostCaption.rectTransform.Place(UiKit.BottomLeft, UiKit.BottomLeft, new Vector2(16f, 32f), new Vector2(60f, 16f));
 
             _boostFill = UiKit.CreateBar("BoostBar", speedPanel.transform, new Color(0f, 0f, 0f, 0.55f), Art.HudCyan,
                 out Image boostBg, 6);
@@ -320,7 +342,7 @@ namespace FormosaExpress.UI
             comboBg.gameObject.SetActive(false);
 
             _hints = UiKit.CreateLabel("Hints", _root,
-                "W/S throttle & brake   A/D steer   SPACE drift   SHIFT boost   TAB switch job   E horn   C camera",
+                Localization.T("W/S throttle & brake   A/D steer   SPACE drift   SHIFT boost   TAB switch job   E horn   C camera"),
                 15, new Color(1f, 1f, 1f, 0.42f), TextAnchor.MiddleCenter);
             _hints.rectTransform.Place(UiKit.BottomCentre, UiKit.BottomCentre, new Vector2(0f, 12f),
                 new Vector2(1100f, 20f));
@@ -336,8 +358,8 @@ namespace FormosaExpress.UI
             _markerTitle.rectTransform.Place(UiKit.TopCentre, UiKit.TopCentre, new Vector2(0f, -32f),
                 new Vector2(360f, 34f));
 
-            UiKit.CreateOutlinedLabel("MarkerCaption", _marker, "DESTINATION", 16, Art.HudText)
-                .rectTransform.Place(UiKit.TopCentre, UiKit.TopCentre, new Vector2(0f, -10f), new Vector2(360f, 20f));
+            _markerCaption = UiKit.CreateOutlinedLabel("MarkerCaption", _marker, "DESTINATION", 16, Art.HudText);
+            _markerCaption.rectTransform.Place(UiKit.TopCentre, UiKit.TopCentre, new Vector2(0f, -10f), new Vector2(360f, 20f));
 
             _markerDistance = UiKit.CreateOutlinedLabel("MarkerDistance", _marker, "", 24, Art.HudText);
             _markerDistance.rectTransform.Place(UiKit.TopCentre, UiKit.TopCentre, new Vector2(0f, -62f),
@@ -471,7 +493,7 @@ namespace FormosaExpress.UI
 
             _versusPlayer.text = mine.ToString();
             _versusRival.text = rival.Delivered.ToString();
-            _versusRivalName.text = rival.RivalName;
+            _versusRivalName.text = Localization.T(rival.RivalName);
             _versusPlayerBar.fillAmount = Mathf.Clamp01(mine / (float)target);
             _versusRivalBar.fillAmount = Mathf.Clamp01(rival.Delivered / (float)target);
 
@@ -545,7 +567,7 @@ namespace FormosaExpress.UI
 
             if (showQuota)
             {
-                _quotaLabel.text = $"QUOTA  {director.ShiftEarnings} / {quota}";
+                _quotaLabel.text = $"{Localization.T("QUOTA")}  {director.ShiftEarnings} / {quota}";
                 float progress = Mathf.Clamp01(director.ShiftEarnings / (float)quota);
                 _quotaFill.fillAmount = progress;
                 _quotaFill.color = progress >= 1f ? Art.HudGold : Art.HudGreen;
@@ -582,9 +604,9 @@ namespace FormosaExpress.UI
                 card.Stripe.color = focused ? accent : new Color(accent.r, accent.g, accent.b, 0.5f);
                 card.Stripe.rectTransform.sizeDelta = focused ? new Vector2(9f, 58f) : new Vector2(4f, 58f);
 
-                string label = takenByRival ? "TAKEN  " + order.ShopName
-                    : carrying ? "TO  " + order.CustomerName
-                    : "PICK UP  " + order.ShopName;
+                string label = takenByRival ? Localization.T("TAKEN") + "  " + Localization.T(order.ShopName)
+                    : carrying ? Localization.T("TO") + "  " + Localization.T(order.CustomerName)
+                    : Localization.T("PICK UP") + "  " + Localization.T(order.ShopName);
                 card.Title.text = (focused ? "> " : "   ") + label;
                 card.Title.color = takenByRival ? Art.RivalTint
                     : focused ? Art.HudGold
@@ -595,7 +617,7 @@ namespace FormosaExpress.UI
                 float distance = focused && Services.Routes != null && Services.Routes.HasRoute
                     ? Services.Routes.DistanceRemaining
                     : Vector3.Distance(Services.PlayerPosition, order.ActiveTarget);
-                card.Detail.text = $"{order.DishName}  ·  {MathX.FormatDistance(distance)}  ·  ${order.BaseFare}";
+                card.Detail.text = $"{Localization.T(order.DishName)}  ·  {MathX.FormatDistance(distance)}  ·  ${order.BaseFare}";
 
                 float remaining = order.TimeLimit > 0f ? Mathf.Clamp01(order.TimeRemaining / order.TimeLimit) : 0f;
                 card.TimeFill.fillAmount = remaining;
@@ -639,8 +661,8 @@ namespace FormosaExpress.UI
             {
                 bool carrying = orders.CarriedCount > 0;
                 _cargoLabel.text = carrying
-                    ? $"BAG  {orders.CarriedCount}/{orders.Capacity}   {Mathf.RoundToInt(orders.WorstCondition)}%"
-                    : $"BAG EMPTY  0/{orders.Capacity}";
+                    ? $"{Localization.T("BAG")}  {orders.CarriedCount}/{orders.Capacity}   {Mathf.RoundToInt(orders.WorstCondition)}%"
+                    : $"{Localization.T("BAG EMPTY")}  0/{orders.Capacity}";
                 _cargoLabel.color = carrying ? Art.HudText : Art.HudDim;
 
                 float condition = carrying ? orders.WorstCondition / Tuning.CargoMax : 1f;
@@ -721,8 +743,8 @@ namespace FormosaExpress.UI
                 Vector2 canvasPoint = ScreenToCanvas(screen);
                 _marker.anchoredPosition = canvasPoint;
 
-                _markerTitle.text = order.PickedUp ? order.CustomerName.ToUpperInvariant()
-                    : order.ShopName.ToUpperInvariant();
+                _markerTitle.text = order.PickedUp ? Localization.T(order.CustomerName).ToUpperInvariant()
+                    : Localization.T(order.ShopName).ToUpperInvariant();
                 _markerTitle.color = accent;
                 _markerDistance.text = MathX.FormatDistance(distance);
                 _markerIcon.color = accent;

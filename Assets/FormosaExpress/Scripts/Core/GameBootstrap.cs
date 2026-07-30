@@ -27,15 +27,33 @@ namespace FormosaExpress.Core
 
         void Awake()
         {
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
             Services.Reset();
             Application.targetFrameRate = -1;
             QualitySettings.vSyncCount = 1;
 
+            Services.Save = SaveSystem.Load();
+            Localization.SetLanguage((Language)Mathf.Clamp(Services.Save.language, 0, 3));
+            Localization.Changed += () => { if (Services.Save != null) Services.Save.language = (int)Localization.Current; };
+
+            // The loading screen is built and shown before anything else - a Screen Space Overlay
+            // canvas needs no camera, so it can render for a frame while the coroutine below still
+            // has the whole city, traffic and audio synthesis ahead of it.
+            var loadingGo = new GameObject("_Loading");
+            loadingGo.transform.SetParent(transform, false);
+            LoadingScreen loading = loadingGo.AddComponent<LoadingScreen>();
+            loading.Build();
+
+            StartCoroutine(Boot(loading));
+        }
+
+        System.Collections.IEnumerator Boot(LoadingScreen loading)
+        {
+            yield return null;   // let the loading screen actually render before the freeze
+
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
             ConfigurePhysics();
 
-            Services.Save = SaveSystem.Load();
             Services.Input = new InputRouter();
             Services.Palette = new Palette();
             Services.Materials = new MaterialLibrary(Services.Palette);
@@ -46,6 +64,9 @@ namespace FormosaExpress.Core
             EnvironmentDirector environment = Create<EnvironmentDirector>("Environment", systems.transform);
             environment.Initialise();
 
+            loading.SetStatus(Localization.T("Laying out the streets..."));
+            yield return null;
+
             CityModel city = BuildCity(out CityBuilder layout);
             Services.City = city;
 
@@ -55,6 +76,9 @@ namespace FormosaExpress.Core
             Services.Player = player;
 
             Camera camera = BuildCamera(player);
+
+            loading.SetStatus(Localization.T("Building traffic..."));
+            yield return null;
 
             Services.Traffic = Create<TrafficSystem>("Traffic", systems.transform);
             Services.Traffic.Initialise(city, Services.Materials, CitySeed);
@@ -75,8 +99,14 @@ namespace FormosaExpress.Core
             Services.Fx = Create<FxDirector>("Fx", systems.transform);
             Services.Fx.Initialise(player, visual);
 
+            loading.SetStatus(Localization.T("Synthesising audio..."));
+            yield return null;
+
             Services.Audio = Create<AudioDirector>("Audio", systems.transform);
             Services.Audio.Initialise();
+
+            loading.SetStatus(Localization.T("Assembling the HUD..."));
+            yield return null;
 
             var uiRoot = new GameObject("_UI");
             uiRoot.transform.SetParent(transform, false);
@@ -94,6 +124,8 @@ namespace FormosaExpress.Core
             // shared atlas, so commit once more now that everything exists.
             Services.Materials.CommitPalette();
             Services.Ready = true;
+
+            Destroy(loading.gameObject);
 
             stopwatch.Stop();
             if (LogBuildStats)

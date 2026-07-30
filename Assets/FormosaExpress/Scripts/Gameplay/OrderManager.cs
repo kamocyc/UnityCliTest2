@@ -146,7 +146,7 @@ namespace FormosaExpress.Gameplay
                     if (_pickupHintTimer <= 0f)
                     {
                         _pickupHintTimer = 2.2f;
-                        Services.Hud?.ShowToast("SLOW DOWN TO " + (order.PickedUp ? "DELIVER" : "COLLECT"), Art.HudGold);
+                        Services.Hud?.ShowToast(Localization.T(order.PickedUp ? "SLOW DOWN TO DELIVER" : "SLOW DOWN TO COLLECT"), Art.HudGold);
                     }
 
                     continue;
@@ -164,7 +164,7 @@ namespace FormosaExpress.Gameplay
                 if (_pickupHintTimer <= 0f)
                 {
                     _pickupHintTimer = 2.5f;
-                    Services.Hud?.ShowToast("BAG FULL - DELIVER FIRST", Art.HudRed);
+                    Services.Hud?.ShowToast(Localization.T("BAG FULL - DELIVER FIRST"), Art.HudRed);
                 }
 
                 return;

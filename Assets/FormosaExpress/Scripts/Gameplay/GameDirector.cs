@@ -147,7 +147,7 @@ namespace FormosaExpress.Gameplay
                 return;
             }
 
-            string flavour = BriefingFlavour[(Level - 1) % BriefingFlavour.Length];
+            string flavour = Localization.T(BriefingFlavour[(Level - 1) % BriefingFlavour.Length]);
             Services.Hud?.SetVisible(false);
             Services.Screens?.SetBriefing(Level, Quota, ShiftDuration, capacity, flavour);
             Services.Screens?.Show(ScreenStack.Screen.Briefing);
@@ -207,8 +207,8 @@ namespace FormosaExpress.Gameplay
 
             Services.Hud?.ShowToast(
                 IsRace
-                    ? $"RACE  ·  FIRST TO {RaceTarget} DELIVERIES"
-                    : $"SHIFT {Level} - GO",
+                    ? string.Format(Localization.T("RACE  ·  FIRST TO {0} DELIVERIES"), RaceTarget)
+                    : string.Format(Localization.T("SHIFT {0} - GO"), Level),
                 IsRace ? Art.RivalTint : Art.HudGold, 2.4f);
         }
 
@@ -416,7 +416,7 @@ namespace FormosaExpress.Gameplay
                 }
                 else if (ShiftTimeRemaining < 31f && ShiftTimeRemaining + dt >= 31f)
                 {
-                    Services.Hud?.ShowToast("30 SECONDS", Art.HudRed, 2f);
+                    Services.Hud?.ShowToast(Localization.T("30 SECONDS"), Art.HudRed, 2f);
                 }
             }
         }
@@ -432,7 +432,7 @@ namespace FormosaExpress.Gameplay
             {
                 _raceWon = true;
                 _raceResolved = true;
-                Services.Hud?.ShowToast("YOU WIN!", Art.HudGold, 3f);
+                Services.Hud?.ShowToast(Localization.T("YOU WIN!"), Art.HudGold, 3f);
                 EndShift();
                 return;
             }
@@ -441,7 +441,7 @@ namespace FormosaExpress.Gameplay
             {
                 _raceWon = false;
                 _raceResolved = true;
-                Services.Hud?.ShowToast("BEATEN TO IT", Art.HudRed, 3f);
+                Services.Hud?.ShowToast(Localization.T("BEATEN TO IT"), Art.HudRed, 3f);
                 EndShift();
             }
         }
@@ -499,7 +499,7 @@ namespace FormosaExpress.Gameplay
                 if (agent != null) Services.Traffic.KnockAgent(agent, info.Point, info.Severity);
 
                 if (info.Severity > 0.30f)
-                    Services.Hud?.ShowToast("CRASH!", Art.HudRed, 1.4f);
+                    Services.Hud?.ShowToast(Localization.T("CRASH!"), Art.HudRed, 1.4f);
             }
             else if (info.HitPedestrian)
             {
@@ -511,26 +511,27 @@ namespace FormosaExpress.Gameplay
                     ped.Tumble(away.normalized * 4.5f);
                 }
 
-                Services.Hud?.ShowToast("WATCH THE PAVEMENT!", Art.HudRed, 1.4f);
+                Services.Hud?.ShowToast(Localization.T("WATCH THE PAVEMENT!"), Art.HudRed, 1.4f);
             }
         }
 
         void OnRespawned()
         {
-            Services.Hud?.ShowToast("BACK ON THE ROAD", Art.HudGold, 1.4f);
+            Services.Hud?.ShowToast(Localization.T("BACK ON THE ROAD"), Art.HudGold, 1.4f);
             Services.Fx?.ClearSkids();
         }
 
         void OnOffered(Order order)
         {
             if (Phase != GamePhase.Riding) return;
-            Services.Hud?.ShowToast($"NEW ORDER  ·  {order.ShopName}", Art.BeaconAmber, 1.9f);
+            Services.Hud?.ShowToast(string.Format(Localization.T("NEW ORDER  ·  {0}"), Localization.T(order.ShopName)), Art.BeaconAmber, 1.9f);
             Services.Audio?.PlayUiMove();
         }
 
         void OnPickedUp(Order order)
         {
-            Services.Hud?.ShowToast($"{order.DishName.ToUpperInvariant()}  ·  TO {order.CustomerName}",
+            Services.Hud?.ShowToast(
+                string.Format(Localization.T("{0}  ·  TO {1}"), Localization.T(order.DishName).ToUpperInvariant(), Localization.T(order.CustomerName)),
                 Art.HudCyan, 2.1f);
             Services.Audio?.PlayPickup();
             Services.Fx?.PlayDelivery(order.PickupPosition);
@@ -549,10 +550,10 @@ namespace FormosaExpress.Gameplay
 
             string tier = order.ConditionTier switch
             {
-                CargoCondition.Perfect => "PERFECT",
-                CargoCondition.Good => "GOOD",
-                CargoCondition.Messy => "MESSY",
-                _ => "RUINED"
+                CargoCondition.Perfect => Localization.T("PERFECT"),
+                CargoCondition.Good => Localization.T("GOOD"),
+                CargoCondition.Messy => Localization.T("MESSY"),
+                _ => Localization.T("RUINED")
             };
 
             Color tierColour = order.ConditionTier switch
@@ -563,10 +564,11 @@ namespace FormosaExpress.Gameplay
                 _ => Art.HudRed
             };
 
-            Services.Hud?.ShowToast($"{tier} DELIVERY   +{MathX.FormatMoney(payout)}", tierColour, 2.3f);
+            Services.Hud?.ShowToast(string.Format(Localization.T("{0} DELIVERY   +{1}"), tier, MathX.FormatMoney(payout)),
+                tierColour, 2.3f);
 
             if (ShiftEarnings >= Quota && ShiftEarnings - payout < Quota)
-                Services.Hud?.ShowToast("QUOTA MET - KEEP GOING FOR BONUS", Art.HudGold, 2.6f);
+                Services.Hud?.ShowToast(Localization.T("QUOTA MET - KEEP GOING FOR BONUS"), Art.HudGold, 2.6f);
         }
 
         void OnExpired(Order order)
@@ -580,7 +582,7 @@ namespace FormosaExpress.Gameplay
 
             Services.Combo?.RegisterCrash(order.ActiveTarget);
             Services.Audio?.PlayExpire();
-            Services.Hud?.ShowToast($"ORDER LOST  ·  -{MathX.FormatMoney(penalty)}", Art.HudRed, 2.2f);
+            Services.Hud?.ShowToast(string.Format(Localization.T("ORDER LOST  ·  -{0}"), MathX.FormatMoney(penalty)), Art.HudRed, 2.2f);
         }
 
         void OnPopup(string text, Color colour, Vector3 world)

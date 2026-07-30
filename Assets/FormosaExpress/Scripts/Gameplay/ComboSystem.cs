@@ -143,7 +143,7 @@ namespace FormosaExpress.Gameplay
 
             NearMissCount++;
             Services.Player?.AddAdrenaline(Tuning.AdrenalineNearMiss);
-            Register(ComboEventKind.NearMiss, Tuning.ScoreNearMiss, worldPosition, "NEAR MISS", Art.HudCyan);
+            Register(ComboEventKind.NearMiss, Tuning.ScoreNearMiss, worldPosition, Localization.T("NEAR MISS"), Art.HudCyan);
             Services.Audio?.PlayWhoosh(Mathf.Clamp01(speed / 22f));
         }
 
@@ -170,7 +170,7 @@ namespace FormosaExpress.Gameplay
                 {
                     _driftAccumulator = 0f;
                     Register(ComboEventKind.Drift, Mathf.RoundToInt(Tuning.ScoreDriftPerSecond * 0.9f),
-                        player.transform.position, "DRIFT", Art.HudGold);
+                        player.transform.position, Localization.T("DRIFT"), Art.HudGold);
                 }
             }
             else
@@ -185,7 +185,7 @@ namespace FormosaExpress.Gameplay
                 {
                     _airAccumulator = 0f;
                     Register(ComboEventKind.Airtime, Mathf.RoundToInt(Tuning.ScoreAirPerSecond * 0.5f),
-                        player.transform.position, "AIRBORNE", Art.HudGreen);
+                        player.transform.position, Localization.T("AIRBORNE"), Art.HudGreen);
                 }
             }
             else if (player.IsGrounded)
@@ -203,7 +203,7 @@ namespace FormosaExpress.Gameplay
             {
                 Score = Mathf.Max(0, Score - Tuning.ScorePenaltyCrash);
                 Break();
-                Popup?.Invoke("CRASH  -" + Tuning.ScorePenaltyCrash, Art.HudRed, worldPosition);
+                Popup?.Invoke(string.Format(Localization.T("CRASH  -{0}"), Tuning.ScorePenaltyCrash), Art.HudRed, worldPosition);
                 return;
             }
 
@@ -223,7 +223,7 @@ namespace FormosaExpress.Gameplay
         public void RegisterDelivery(Vector3 worldPosition, int timeBonusSeconds)
         {
             int points = Tuning.ScoreDeliveryBase + timeBonusSeconds * Tuning.ScorePerSecondSaved;
-            Register(ComboEventKind.Delivery, points, worldPosition, "DELIVERED", Art.HudGreen);
+            Register(ComboEventKind.Delivery, points, worldPosition, Localization.T("DELIVERED!"), Art.HudGreen);
         }
 
         public void RegisterCrash(Vector3 worldPosition)

@@ -138,6 +138,7 @@ namespace FormosaExpress.Core
         public bool tutorialSeen;
         public int racesWon;
         public int racesLost;
+        public int language;
 
         public int GetUpgrade(UpgradeKind kind)
         {
